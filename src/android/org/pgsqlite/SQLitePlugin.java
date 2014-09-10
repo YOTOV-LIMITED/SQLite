@@ -20,7 +20,13 @@ import android.util.Log;
 import java.io.File;
 import java.lang.IllegalArgumentException;
 import java.lang.Number;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,20 +53,15 @@ public class SQLitePlugin extends CordovaPlugin {
 
     /**
      * Multiple database map (static).
+     * TBD: restructure to keep only map with the DBRunner; may not need ConcurrentHashMap.
+     * NOTE: removed public static accessor to dbmap since it would not work with db threading.
+     * FUTURE put DBRunner into a public class that can provide external accessor.
      */
-    static HashMap<String, SQLiteDatabase> dbmap = new HashMap<String, SQLiteDatabase>();
+    static ConcurrentHashMap<String, SQLiteDatabase> dbmap = new ConcurrentHashMap<String, SQLiteDatabase>();
+    static ConcurrentHashMap<String, DBRunner> rmap = new ConcurrentHashMap<String, DBRunner>();
 
     /**
-     * Get a SQLiteDatabase reference from the db map (public static accessor).
-     *
-     * @param dbname The name of the database.
-     */
-    public static SQLiteDatabase getSQLiteDatabase(String dbname) {
-        return dbmap.get(dbname);
-    }
-
-    /**
-     * NOTE: Using default constructor, explicit constructor no longer required.
+     * NOTE: Using default constructor, no explicit constructor.
      */
 
     /**
@@ -103,56 +104,26 @@ public class SQLitePlugin extends CordovaPlugin {
             case open:
                 o = args.getJSONObject(0);
                 dbname = o.getString("name");
-
-                this.openDatabase(dbname, null);
+                // open database and start reading its queue
+                this.startDatabase(dbname, cbc);
                 break;
+
             case close:
                 o = args.getJSONObject(0);
                 dbname = o.getString("path");
-
-                this.closeDatabase(dbname);
+                // put request in the q to close the db
+                this.closeDatabase(dbname, cbc);
                 break;
+
             case delete:
                 o = args.getJSONObject(0);
                 dbname = o.getString("path");
 
-                status = this.deleteDatabase(dbname);
+                deleteDatabase(dbname, cbc);
 
-                // deleteDatabase() requires an async callback
-                if (status) {
-                    cbc.success();
-                } else {
-                    cbc.error("couldn't delete database");
-                }
                 break;
-            case executePragmaStatement:
-                dbname = args.getString(0);
-                String query = args.getString(1);
 
-                JSONArray jparams = (args.length() < 3) ? null : args.getJSONArray(2);
-
-                String[] params = null;
-
-                if (jparams != null) {
-                    params = new String[jparams.length()];
-
-                    for (int j = 0; j < jparams.length(); j++) {
-                        if (jparams.isNull(j)) {
-                            params[j] = "";
-                        } else {
-                            params[j] = jparams.getString(j);
-                        }
-                    }
-                }
-
-                Cursor myCursor = this.getDatabase(dbname).rawQuery(query, params);
-
-                String result = this.getRowsResultFromQuery(myCursor).getJSONArray("rows").toString();
-
-                this.sendJavascriptCB("window.SQLitePluginCallback.p1('" + id + "', " + result + ");");
-                break;
             case executeSqlBatch:
-            case executeBatchTransaction:
             case backgroundExecuteSqlBatch:
                 String[] queries = null;
                 String[] queryIDs = null;
@@ -184,10 +155,18 @@ public class SQLitePlugin extends CordovaPlugin {
                     }
                 }
 
-                if (action == Action.backgroundExecuteSqlBatch) {
-                    this.executeSqlBatchInBackground(dbname, queries, jsonparams, queryIDs, cbc);
+                // put db query in the queue to be executed in the db thread:
+                DBQuery q = new DBQuery(queries, queryIDs, jsonparams, cbc);
+                DBRunner r = rmap.get(dbname);
+                if (r != null) {
+                	try {
+                		r.q.put(q); 
+                	} catch(Exception e) {
+                		Log.e(SQLitePlugin.class.getSimpleName(), "couldn't add to queue", e);
+                		cbc.error("couldn't add to queue");
+                	}
                 } else {
-                    this.executeSqlBatch(dbname, queries, jsonparams, queryIDs, cbc);
+            		cbc.error("database not open");
                 }
                 break;
         }
@@ -202,7 +181,8 @@ public class SQLitePlugin extends CordovaPlugin {
     public void onDestroy() {
         while (!dbmap.isEmpty()) {
             String dbname = dbmap.keySet().iterator().next();
-            this.closeDatabase(dbname);
+            // TODO should stop the db thread(s) instead (!!)
+            this.closeDatabaseNow(dbname);
             dbmap.remove(dbname);
         }
     }
@@ -211,36 +191,81 @@ public class SQLitePlugin extends CordovaPlugin {
     // LOCAL METHODS
     // --------------------------------------------------------------------------
 
+    private void startDatabase(String dbname, CallbackContext cbc) {
+        // TODO: is it an issue that we can orphan an existing thread?  What should we do here?
+        // If we re-use the existing DBRunner it might be in the process of closing...
+        DBRunner r = rmap.get(dbname);
+        if (r != null) {
+        	// don't orphan the existing thread; just re-open the existing database.
+        	// In the worst case it might be in the process of closing, but even that's less serious
+        	// than orphaning the old DBRunner.
+            cbc.success();
+        } else {
+            r = new DBRunner(dbname, cbc);
+            rmap.put(dbname, r);
+            this.cordova.getThreadPool().execute(r);
+        }
+    }
     /**
      * Open a database.
      *
-     * @param dbname   The name of the database-NOT including its extension.
-     * @param password The database password or null.
+     * @param dbName   The name of the database file
      */
-    private void openDatabase(String dbname, String password) {
-        if (this.getDatabase(dbname) != null) {
-            this.closeDatabase(dbname);
+    private void openDatabase(String dbname, CallbackContext cbc) {
+        try {
+            if (this.getDatabase(dbname) != null) {
+            	// this should not happen - should be blocked at the execute("open") level
+            	cbc.error("database already open");
+            }
+
+            File dbfile = this.cordova.getActivity().getDatabasePath(dbname);
+
+            if (!dbfile.exists()) {
+                dbfile.getParentFile().mkdirs();
+            }
+
+            Log.v("info", "Open sqlite db: " + dbfile.getAbsolutePath());
+
+            SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, null);
+
+            dbmap.put(dbname, mydb);
+
+            cbc.success();
+        } catch (SQLiteException e) {
+            cbc.error("can't open database " + e);
+            throw e;
         }
-
-        File dbfile = this.cordova.getActivity().getDatabasePath(dbname);
-
-        if (!dbfile.exists()) {
-            dbfile.getParentFile().mkdirs();
-        }
-
-        Log.v("info", "Open sqlite db: " + dbfile.getAbsolutePath());
-
-        SQLiteDatabase mydb = SQLiteDatabase.openOrCreateDatabase(dbfile, null);
-
-        dbmap.put(dbname, mydb);
     }
 
     /**
-     * Close a database.
+     * Close a database (in another thread).
      *
-     * @param dbName The name of the database-NOT including its extension.
+     * @param dbName   The name of the database file
      */
-    private void closeDatabase(String dbName) {
+    private void closeDatabase(String dbName, CallbackContext cbc) {
+        DBRunner r = rmap.get(dbName);
+        if (r != null) {
+            try {
+                r.q.put(new DBQuery(false, cbc));
+            } catch(Exception e) {
+            	if (cbc != null) {
+            		cbc.error("couldn't close database" + e);
+            	}
+                Log.e(SQLitePlugin.class.getSimpleName(), "couldn't close database", e);
+            }
+        } else {
+        	if (cbc != null) {
+        		cbc.success();
+        	}
+        }
+    }
+
+    /**
+     * Close a database (in the current thread).
+     *
+     * @param dbName   The name of the database file
+     */
+    private void closeDatabaseNow(String dbName) {
         SQLiteDatabase mydb = this.getDatabase(dbName);
 
         if (mydb != null) {
@@ -249,31 +274,48 @@ public class SQLitePlugin extends CordovaPlugin {
         }
     }
 
+    private void deleteDatabase(String dbname, CallbackContext cbc) {
+        DBRunner r = rmap.get(dbname);
+        if (r != null) {
+            try {
+                r.q.put(new DBQuery(true, cbc));
+            } catch(Exception e) {
+            	if (cbc != null) {
+            		cbc.error("couldn't close database" + e);
+            	}
+                Log.e(SQLitePlugin.class.getSimpleName(), "couldn't close database", e);
+            }
+        } else {
+            boolean deleteResult = this.deleteDatabaseNow(dbname);
+            if (deleteResult) {
+                cbc.success();
+            } else {
+                cbc.error("couldn't delete database");
+            }
+        }
+    }
     /**
      * Delete a database.
      *
-     * @param dbname The name of the database-NOT including its extension.
+     * @param dbName   The name of the database file
+     *
      * @return true if successful or false if an exception was encountered
      */
     @SuppressLint("NewApi")
-    private boolean deleteDatabase(String dbname) {
-        if (this.getDatabase(dbname) != null) {
-            this.closeDatabase(dbname);
-        }
-
+    private boolean deleteDatabaseNow(String dbname) {
         File dbfile = this.cordova.getActivity().getDatabasePath(dbname);
 
         if (android.os.Build.VERSION.SDK_INT >= 11) {
             // Use try & catch just in case android.os.Build.VERSION.SDK_INT >= 16 was lying:
             try {
-                return SQLiteDatabase.deleteDatabase(dbfile);
+            	return SQLiteDatabase.deleteDatabase(dbfile);
             } catch (Exception e) {
                 Log.e(SQLitePlugin.class.getSimpleName(), "couldn't delete because old SDK_INT", e);
                 return deleteDatabasePreHoneycomb(dbfile);
             }
         } else {
             // use old API
-            return deleteDatabasePreHoneycomb(dbfile);
+        	return deleteDatabasePreHoneycomb(dbfile);
         }
     }
 
@@ -296,30 +338,7 @@ public class SQLitePlugin extends CordovaPlugin {
     }
 
     /**
-     * Executes a batch request IN BACKGROUND THREAD and sends the results via sendJavascriptCB().
-     *
-     * @param dbName     The name of the database.
-     * @param queryarr   Array of query strings
-     * @param jsonparams Array of JSON query parameters
-     * @param queryIDs   Array of query ids
-     * @param cbc        Callback context from Cordova API
-     */
-    private void executeSqlBatchInBackground(final String dbName,
-                                             final String[] queryarr, final JSONArray[] jsonparams,
-                                             final String[] queryIDs, final CallbackContext cbc) {
-        final SQLitePlugin myself = this;
-
-        this.cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
-                synchronized (myself) {
-                    myself.executeSqlBatch(dbName, queryarr, jsonparams, queryIDs, cbc);
-                }
-            }
-        });
-    }
-
-    /**
-     * Executes a batch request and sends the results via sendJavascriptCB().
+     * Executes a batch request and sends the results via cbc.
      *
      * @param dbname     The name of the database.
      * @param queryarr   Array of query strings
@@ -334,10 +353,9 @@ public class SQLitePlugin extends CordovaPlugin {
         SQLiteDatabase mydb = getDatabase(dbname);
 
         if (mydb == null) {
-            // auto-open; this is something we have to support
-            // since you can delete a database and then re-use it
-            openDatabase(dbname, null);
-            mydb = getDatabase(dbname);
+        	// not allowed - can only happen if someone has closed (and possibly deleted) a database and then re-used the database
+        	cbc.error("database has been closed");
+        	return;
         }
 
 
@@ -409,16 +427,21 @@ public class SQLitePlugin extends CordovaPlugin {
 
                     try {
                         insertId = myStatement.executeInsert();
+
+                        // statement has finished with no constraint violation:
+                        queryResult = new JSONObject();
+                        if (insertId != -1) {
+                            queryResult.put("insertId", insertId);
+                            queryResult.put("rowsAffected", 1);
+                        } else {
+                            queryResult.put("rowsAffected", 0);
+                        }
                     } catch (SQLiteException ex) {
+                        // report error result with the error message
+                        // could be constraint violation or some other error
                         ex.printStackTrace();
                         errorMessage = ex.getMessage();
                         Log.v("executeSqlBatch", "SQLiteDatabase.executeInsert(): Error=" + errorMessage);
-                    }
-
-                    if (insertId != -1) {
-                        queryResult = new JSONObject();
-                        queryResult.put("insertId", insertId);
-                        queryResult.put("rowsAffected", 1);
                     }
                 }
 
@@ -467,35 +490,10 @@ public class SQLitePlugin extends CordovaPlugin {
 
                 // raw query for other statements:
                 if (needRawQuery) {
-                    String[] params = null;
-
-                    if (jsonparams != null) {
-                        params = new String[jsonparams[i].length()];
-
-                        for (int j = 0; j < jsonparams[i].length(); j++) {
-                            if (jsonparams[i].isNull(j))
-                                params[j] = "";
-                            else
-                                params[j] = jsonparams[i].getString(j);
-                        }
-                    }
-
-                    Cursor myCursor = null;
-                    try {
-                        myCursor = mydb.rawQuery(query, params);
-
-                        if (query_id.length() > 0) {
-                            queryResult = this.getRowsResultFromQuery(myCursor);
-                        }
-                    } finally {
-                        if (myCursor != null) {
-                            myCursor.close();
-                        }
-                    }
+                    queryResult = this.executeSqlStatementQuery(mydb, query, jsonparams[i], cbc);
 
                     if (needRowsAffectedCompat) {
                         queryResult.put("rowsAffected", rowsAffectedCompat);
-
                     }
                 }
             } catch (Exception ex) {
@@ -641,11 +639,34 @@ public class SQLitePlugin extends CordovaPlugin {
      * @param cur Cursor into query results
      * @return results in string form
      */
-    private JSONObject getRowsResultFromQuery(Cursor cur) {
+    private JSONObject executeSqlStatementQuery(SQLiteDatabase mydb,
+                                                String query, JSONArray paramsAsJson,
+                                                CallbackContext cbc) throws Exception {
         JSONObject rowsResult = new JSONObject();
 
+        Cursor cur = null;
+        try {
+            String[] params = null;
+
+            params = new String[paramsAsJson.length()];
+
+            for (int j = 0; j < paramsAsJson.length(); j++) {
+                if (paramsAsJson.isNull(j))
+                    params[j] = "";
+                else
+                    params[j] = paramsAsJson.getString(j);
+            }
+
+            cur = mydb.rawQuery(query, params);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            String errorMessage = ex.getMessage();
+            Log.v("executeSqlBatch", "SQLitePlugin.executeSql[Batch](): Error=" + errorMessage);
+            throw ex;
+        }
+
         // If query result has rows
-        if (cur.moveToFirst()) {
+        if (cur != null && cur.moveToFirst()) {
             JSONArray rowsArrayResult = new JSONArray();
             String key = "";
             int colCount = cur.getColumnCount();
@@ -675,7 +696,6 @@ public class SQLitePlugin extends CordovaPlugin {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
             } while (cur.moveToNext());
 
             try {
@@ -683,6 +703,10 @@ public class SQLitePlugin extends CordovaPlugin {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+        }
+
+        if (cur != null) {
+            cur.close();
         }
 
         return rowsResult;
@@ -732,37 +756,95 @@ public class SQLitePlugin extends CordovaPlugin {
         }
     }
 
-    /**
-     * Send Javascript callback.
-     *
-     * @param cb Javascript callback command to send
-     */
-    private void sendJavascriptCB(String cb) {
-        this.webView.sendJavascript(cb);
+    private class DBRunner implements Runnable {
+        final String dbname;
+        final BlockingQueue<DBQuery> q;
+        final CallbackContext openCbc;
+
+        DBRunner(final String dbname, CallbackContext cbc) {
+            this.dbname = dbname;
+            this.q = new LinkedBlockingQueue<DBQuery>();
+            this.openCbc = cbc;
+        }
+
+        public void run() {
+            openDatabase(dbname, this.openCbc);
+
+            DBQuery dbq;
+            try {
+                dbq = q.take();
+
+                while (!dbq.stop) {
+                    executeSqlBatch(dbname, dbq.queries, dbq.jsonparams, dbq.queryIDs, dbq.cbc);
+
+                    dbq = q.take();
+                }
+
+                try {
+                	if (!rmap.remove(dbname, this)) {
+                		Log.w(SQLitePlugin.class.getSimpleName(), "Couldn't remove ourself"); // TODO: remove
+                	}
+                    closeDatabaseNow(dbname);
+                    
+                    if (!dbq.delete) {
+                    	 dbq.cbc.success();
+                    } else {
+    	                try {
+    	                    boolean deleteResult = deleteDatabaseNow(dbname);
+    	                    if (deleteResult) {
+    	                    	dbq.cbc.success();
+    	                    } else {
+    	                    	dbq.cbc.error("couldn't delete database");
+    	                    }
+    	                } catch (Exception e) {
+    	                    Log.e(SQLitePlugin.class.getSimpleName(), "couldn't delete database", e);
+                        	dbq.cbc.error("couldn't delete database: " + e);
+    	                }
+                    }                    
+                } catch (Exception e) {
+                    Log.e(SQLitePlugin.class.getSimpleName(), "couldn't close database", e);
+                    if (dbq.cbc != null) {
+                    	dbq.cbc.error("couldn't close database: " + e);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(SQLitePlugin.class.getSimpleName(), "unexpected error", e);
+            }
+        }
     }
 
-    /**
-     * Send Javascript callback on GUI thread.
-     *
-     * @param cb Javascript callback command to send
-     */
-    private void sendJavascriptToGuiThread(final String cb) {
-        final SQLitePlugin myself = this;
+    private final class DBQuery {
+        final boolean stop;
+        final boolean delete;
+        final String[] queries;
+        final String[] queryIDs;
+        final JSONArray[] jsonparams;
+        final CallbackContext cbc;
 
-        this.cordova.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                myself.webView.sendJavascript(cb);
-            }
-        });
+        DBQuery(String[] myqueries, String[] qids, JSONArray[] params, CallbackContext c) {
+            this.stop = false;
+            this.delete = false;
+            this.queries = myqueries;
+            this.queryIDs = qids;
+            this.jsonparams = params;
+            this.cbc = c;
+        }
+
+        DBQuery(boolean delete, CallbackContext cbc) {
+            this.stop = true;
+            this.delete = delete;
+            this.queries = null;
+            this.queryIDs = null;
+            this.jsonparams = null;
+            this.cbc = cbc;
+        }
     }
 
     private static enum Action {
         open,
         close,
         delete,
-        executePragmaStatement,
         executeSqlBatch,
-        executeBatchTransaction,
         backgroundExecuteSqlBatch,
     }
 

@@ -1,38 +1,38 @@
 # Cordova/PhoneGap SQLitePlugin
 
-Native interface to sqlite in a Cordova/PhoneGap plugin for Android/iOS/WP8, with HTML5 Web SQL API
+Native interface to sqlite in a Cordova/PhoneGap plugin for Android/iOS/WP(8), with HTML5 Web SQL API
 
-License for Android & WP8 versions: MIT or Apache 2.0
+License for Android & WP(8) versions: MIT or Apache 2.0
 
 License for iOS version: MIT only
 
-## WARNING: breaking change for Android version
+## Support September 2014
 
-The automatic "`.db`" database file extension is [now removed](https://github.com/brodysoft/Cordova-SQLitePlugin/commit/3723cfc2dc933ae128fe9d5998efe4d76fcb0370) for the Android version, for consistency with the iOS & WP8 versions. For an existing app, you may have to open an existing database like:
-
-```js
-var db = window.sqlitePlugin.openDatabase({name: "my.db"});
-```
+[@brodybits (Chris Brody)](https://github.com/brodybits) is away on vacation until September 18th. Support will be provided on a limited basis.
 
 ## Status
 
-- WP(8) version is experimental, unsupported and subject to change.
+- [Available at PhoneGap build](https://build.phonegap.com/plugins/977)
 - Please use the [Cordova-SQLitePlugin forum](http://groups.google.com/group/Cordova-SQLitePlugin) for community support
 - Commercial support is available for SQLCipher integration with Android & iOS versions
 
 ## Announcements
 
+- Open/close/delete callbacks working
+- WP(8) deleteDatabase() is now working
+- WP(8) INTEGER binding is now fixed
+- Accepted by PhoneGap build
+- WP(8) version is now working with CSharp-SQLite library classes (which are embedded & built from source) and passing most of the tests.
+- Changes to background processing:
+  - The `dbType` option is now removed;
+  - Android and WP(8) versions are now using one thread per db;
+  - for iOS version backround processing using a thread pool is mandatory;
 - Fixes to work with PouchDB by [@nolanlawson](https://github.com/nolanlawson)
-- WP version added by:
-  - [@nadyaA (Nadezhda Atanasova)](https://github.com/nadyaA) with proper DLL integration
-  - [@Gillardo (Darren Gillard)](https://github.com/Gillardo) with failure-safe transaction semantics working
-- Forum renamed to: [Cordova-SQLitePlugin forum](http://groups.google.com/group/Cordova-SQLitePlugin)
-- New location: https://github.com/brodysoft/Cordova-SQLitePlugin
 - iOS version can now be built with either ARC or MRC.
 
 ## Highlights
 
-- Works with Cordova 3.x tooling
+- Works with Cordova 3.x tooling and [Available at PhoneGap build](https://build.phonegap.com/plugins/977)
 - Drop-in replacement for HTML5 SQL API, the only change should be `window.openDatabase()` --> `sqlitePlugin.openDatabase()`
 - Failure-safe nested transactions with batch processing optimizations
 - As described in [this posting](http://brodyspark.blogspot.com/2012/12/cordovaphonegap-sqlite-plugins-offer.html):
@@ -41,24 +41,27 @@ var db = window.sqlitePlugin.openDatabase({name: "my.db"});
 - Android & iOS working with [SQLCipher](http://sqlcipher.net) for encryption (see below)
 - Android is supported back to SDK 10 (a.k.a. Gingerbread, Android 2.3.3); Support for older versions is available upon request.
 
-## Apps using Cordova/PhoneGap SQLitePlugin
+## Some apps using Cordova/PhoneGap SQLitePlugin
 
 - [Get It Done app](http://getitdoneapp.com/) by [marcucio.com](http://marcucio.com/)
+- [KAAHE Health Encyclopedia](http://www.kaahe.org/en/index.php?option=com_content&view=article&id=817): Official health app of the Kingdom of Saudi Arabia.
 - [Larkwire](http://www.larkwire.com/) (iOS version): Learn bird songs the fun way
+- [Tangorin](https://play.google.com/store/apps/details?id=com.tangorin.app) (Android) Japanese Dictionary at [tangorin.com](http://tangorin.com/)
 
 ## Known issues
 
-- For iOS version: There is a memory leak if you use this version with background processing disabled. As a workaround, the iOS version has background processing enabled by default.
-- Background processing and deleting a database are not implemented for WP8 version.
+- Using web workers is currently not supported and known to be broken on Android.
+- Does not work with the PhoneGap Build Hydration feature.
+- Triggers are only supported for iOS, known to be broken on Android.
 
 ## Other limitations
 
 - The db version, display name, and size parameter values are not supported and will be ignored.
 - The sqlite plugin will not work before the callback for the "deviceready" event has been fired, as described in **Usage**.
-- For Android version, there is an issue with background processing that affects transaction error handling and may affect nested transactions.
-- Background processing model could be improved for the Android version, with one background thread per database connection.
 - For iOS, iCloud backup is NOT optional and should be.
+- The Android version cannot work with more than 100 open db files due to its threading model.
 - Missing db creation callback
+- Multi-page architecture is not (yet) supported.
 
 ## Other versions
 
@@ -99,17 +102,9 @@ function onDeviceReady() {
 
 ## Background processing
 
-To enable background processing on a permanent basis, open a database like:
-
-```js
-var db = window.sqlitePlugin.openDatabase({name: "my.db", bgType: 1});
-```
-
-**NOTE:** the iOS version has background processing enabled by default as a workaround for a memory leak described under **Known limitations**. To disable background processing, open a database like:
-
-```js
-var db = window.sqlitePlugin.openDatabase({name: "my.db", bgType: 0});
-```
+The threading model depens on which version is used:
+- For Android & WP(8), one background thread per db (always);
+- for iOS, background processing using a thread pool (always).
 
 # Sample with PRAGMA feature
 
@@ -190,8 +185,6 @@ This case will also works with Safari (WebKit), assuming you replace window.sqli
 window.sqlitePlugin.deleteDatabase("my.db", successcb, errorcb);
 ```
 
-**NOTE:** This is not implemented for WP8.
-
 # Installing
 
 **NOTE:** This plugin is now prepared to be installed using the `cordova` tool.
@@ -199,13 +192,23 @@ window.sqlitePlugin.deleteDatabase("my.db", successcb, errorcb);
 ## Easy install with cordova tool
 
     npm install -g cordova # if you don't have cordova
+    cordova create MyProjectFolder com.my.project MyProject && cd MyProjectFolder # if you are just starting
     cordova plugin add https://github.com/brodysoft/Cordova-SQLitePlugin
+
+You can find more details at [this writeup](http://iphonedevlog.wordpress.com/2014/04/07/installing-chris-brodys-sqlite-database-with-cordova-cli-android/).
+
+**IMPORTANT:** sometimes you have to update the version for a platform before you can build, like: `cordova prepare ios`
+
+**NOTE:** If you cannot build for a platform after `cordova prepare`, you may have to remove the platform and add it again, such as:
+
+    cordova platform rm ios
+    cordova platform add ios
 
 ## Source tree
 
 - `SQLitePlugin.coffee.md`: platform-independent (Literate coffee-script, can be read by recent coffee-script compiler)
 - `www`: `SQLitePlugin.js` now platform-independent
-- `src`: Java plugin code for Android; Objective-C plugin code for iOS; C-sharp code & DLLs for WP8
+- `src`: Java plugin code for Android; Objective-C plugin code for iOS; C-sharp code & DLLs for WP(8)
 - `test-www`: simple testing in `index.html` using qunit 1.5.0
 - `Lawnchair-adapter`: Lawnchair adaptor, based on the version from the Lawnchair repository, with the basic Lawnchair test suite in `test-www` subdirectory
 
@@ -288,7 +291,7 @@ Enable the SQLitePlugin in `config.xml` (Cordova/PhoneGap 2.x):
          <plugin name="Compass" value="CDVLocation" />
 ```
 
-## Manual installation - WP8 version
+## Manual installation - WP(8) version
 
 TODO
 
@@ -380,7 +383,7 @@ Available for integration with SQLCipher.
 
 # Unit test(s)
 
-Unit testing is done in `test-www/`. To run the tests, simply do either:
+Unit testing is done in `test-www/`. To run the tests from *nix shell, simply do either:
 
     ./bin/test.sh ios
 
@@ -388,17 +391,23 @@ or in Android:
 
     ./bin/test.sh android
 
-Lawnchair Adapter Usage
-=======================
+To run then from a windows powershell do either
 
-Common adapter
---------------
+    .\bin\test.ps1 android
+
+or for Windows Phone 8:
+
+    .\bin\test.ps1 wp8
+
+# Adapters
+
+## Lawnchair Adapter
+
+### Common adapter
 
 Please look at the `Lawnchair-adapter` tree that contains a common adapter, which should also work with the Android version, along with a test-www directory.
 
-
-Included files
---------------
+### Included files
 
 Include the following js files in your html:
 
@@ -406,8 +415,7 @@ Include the following js files in your html:
 -  SQLitePlugin.js
 -  Lawnchair-sqlitePlugin.js (must come after SQLitePlugin.js)
 
-Sample
-------
+### Sample
 
 The `name` option will determine the sqlite filename. Optionally, you can change it using the `db` option.
 
@@ -431,13 +439,16 @@ It also supports bgType argument:
 users = new Lawnchair {name: "users", bgType: 1, ...}
 ```
 
+### PouchDB
+
+The adapter is now part of [PouchDB](http://pouchdb.com/) thanks to [@nolanlawson](https://github.com/nolanlawson), see [PouchDB FAQ](http://pouchdb.com/faq.html).
 
 # Contributing
 
-**IMPORTANT NOTE:** It is better to push your change(s) from a separate branch. Sometimes they need to be reworked before acceptance. Otherwise your `master` branch could become a real mess if rework is needed.
+**WARNING:** Please do NOT propose changes from your `master` branch. In general changes will be rebased using `git rebase` or `git cherry-pick` and not merged.
 
 - Testimonials of apps that are using this plugin would be especially helpful.
-- Reporting issues to the [Cordova-SQLitePlugin forum](http://groups.google.com/group/Cordova-SQLitePlugin) can help improve the quality of this plugin.
+- Reporting issues at [brodysoft / Cordova-SQLitePlugin / issues](https://github.com/brodysoft/Cordova-SQLitePlugin/issues) or to the [Cordova-SQLitePlugin forum](http://groups.google.com/group/Cordova-SQLitePlugin) can help improve the quality of this plugin.
 - Patches with bug fixes are helpful, especially when submitted with test code.
 - Other enhancements welcome for consideration, when submitted with test code and will work for all supported platforms. Increase of complexity should be avoided.
 - All contributions may be reused by [@brodybits (Chris Brody)](https://github.com/brodybits) under another license in the future. Efforts will be taken to give credit for major contributions but it will not be guaranteed.
@@ -445,4 +456,11 @@ users = new Lawnchair {name: "users", bgType: 1, ...}
   - Make a special branch within your fork from which you can send the proposed restructuring;
   - Always use `git mv` to move files & directories;
   - Never mix a move/rename operation and any other changes in the same commit.
+
+## Major branches
+
+- `common-src` - source for Android & iOS versions
+- `master-src` - source for Android, iOS, & WP(8) versions
+- `master-rc` - pre-release version, including source for CSharp-SQLite library classes
+- `master` - version for release, will be included in PhoneGap build.
 

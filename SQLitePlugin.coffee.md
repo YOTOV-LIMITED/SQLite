@@ -10,16 +10,15 @@ License for common Javascript: MIT or Apache
 
     root = @
 
-### constants:
+### constant(s):
 
     READ_ONLY_REGEX = /^\s*(?:drop|delete|insert|update|create)\s/i
-    IOS_REGEX = /iP(?:ad|hone|od)/
 
-### globals:
+### global(s):
 
     txLocks = {}
 
-### utility functions:
+### utility function(s):
 
     nextTick = window.setImmediate || (fun) ->
       window.setTimeout(fun, 0)
@@ -69,14 +68,6 @@ License for common Javascript: MIT or Apache
           console.log e.message
           return
 
-      #@bg = !!openargs.bgType and openargs.bgType == 1
-      @bg =
-        if !openargs.bgType
-          # default to true for iOS only (due to memory issue)
-          IOS_REGEX.test(navigator.userAgent)
-        else
-          openargs.bgType == 1
-
       @open @openSuccess, @openError
       return
 
@@ -95,10 +86,16 @@ License for common Javascript: MIT or Apache
       return
 
     SQLitePlugin::transaction = (fn, error, success) ->
+      if !@openDBs[@dbname]
+        error('database not open')
+        return
       @addTransaction new SQLitePluginTransaction(this, fn, error, success, true, false)
       return
 
     SQLitePlugin::readTransaction = (fn, error, success) ->
+      if !@openDBs[@dbname]
+        error('database not open')
+        return
       @addTransaction new SQLitePluginTransaction(this, fn, error, success, true, true)
       return
 
@@ -114,10 +111,17 @@ License for common Javascript: MIT or Apache
       return
 
     SQLitePlugin::open = (success, error) ->
+      onSuccess = () => success this
       unless @dbname of @openDBs
         @openDBs[@dbname] = true
-        cordova.exec success, error, "SQLitePlugin", "open", [ @openargs ]
-
+        cordova.exec onSuccess, error, "SQLitePlugin", "open", [ @openargs ]
+      else
+        ###
+        for a re-open run onSuccess async so that the openDatabase return value
+        can be used in the success handler as an alternative to the handler's
+        db argument
+        ###
+        nextTick () -> onSuccess();
       return
 
     SQLitePlugin::close = (success, error) ->
@@ -126,7 +130,7 @@ License for common Javascript: MIT or Apache
       if @dbname of @openDBs
         delete @openDBs[@dbname]
 
-        cordova.exec null, null, "SQLitePlugin", "close", [ { path: @dbname } ]
+        cordova.exec success, error, "SQLitePlugin", "close", [ { path: @dbname } ]
 
       return
 
@@ -138,7 +142,7 @@ License for common Javascript: MIT or Apache
         tx.executeSql(statement, params, mysuccess, myerror)
         return
 
-      @addTransaction new SQLitePluginTransaction(this, myfn, myerror, mysuccess, false, false)
+      @addTransaction new SQLitePluginTransaction(this, myfn, null, null, false, false)
       return
 
 ### SQLitePluginTransaction object for batching:
@@ -300,8 +304,7 @@ License for common Javascript: MIT or Apache
 
         return
 
-      mycommand = if @db.bg then "backgroundExecuteSqlBatch" else "executeSqlBatch"
-      cordova.exec mycb, null, "SQLitePlugin", mycommand, [{dbargs: {dbname: @db.dbname}, executes: tropts}]
+      cordova.exec mycb, null, "SQLitePlugin", "backgroundExecuteSqlBatch", [{dbargs: {dbname: @db.dbname}, executes: tropts}]
 
       return
 
@@ -391,6 +394,7 @@ License for common Javascript: MIT or Apache
         new SQLitePlugin openargs, okcb, errorcb
 
       deleteDb: (databaseName, success, error) ->
+        delete SQLitePlugin::openDBs[databaseName]
         cordova.exec success, error, "SQLitePlugin", "delete", [{ path: databaseName }]
 
 ### Exported API:
