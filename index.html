@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Sqlite by YOTOV-LIMITED</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Sqlite</h1>
+      <h2 class="project-tagline">A Cordova/PhoneGap plugin to open and use sqlite databases on Android &amp; iOS with HTML5 Web SQL API - a reference implementation.</h2>
+      <a href="https://github.com/YOTOV-LIMITED/SQLite" class="btn">View on GitHub</a>
+      <a href="https://github.com/YOTOV-LIMITED/SQLite/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/YOTOV-LIMITED/SQLite/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="cordovaphonegap-sqlite-storage-adapter-core-version" class="anchor" href="#cordovaphonegap-sqlite-storage-adapter-core-version" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Cordova/PhoneGap sqlite storage adapter (core version)</h1>
+
+<p>Native interface to sqlite in a Cordova/PhoneGap plugin for Android and iOS, with API similar to HTML5/<a href="http://www.w3.org/TR/webdatabase/">Web SQL API</a>.</p>
+
+<p>License for Android version: MIT or Apache 2.0</p>
+
+<p>License for iOS version: MIT only</p>
+
+<p>This version contains the source code for the Android and iOS versions. This version does not contain any libraries or source code from <a href="http://www.sqlite.org">www.sqlite.org</a>. This version uses the built-in sqlite libraries on Android and iOS.</p>
+
+<table>
+<thead>
+<tr>
+<th>Android CI (limited suite)</th>
+<th>iOS CI (limited suite)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://circleci.com/gh/litehelpers/Cordova-sqlite-storage"><img src="https://circleci.com/gh/litehelpers/Cordova-sqlite-storage.svg?style=svg" alt="Circle CI"></a></td>
+<td><a href="https://travis-ci.org/litehelpers/Cordova-sqlite-storage"><img src="https://travis-ci.org/litehelpers/Cordova-sqlite-storage.svg?branch=master-rc" alt="Build Status"></a></td>
+</tr>
+</tbody>
+</table>
+
+<h2>
+<a id="important-icloud-backup-of-sqlite-database-is-not-allowed" class="anchor" href="#important-icloud-backup-of-sqlite-database-is-not-allowed" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>IMPORTANT: iCloud backup of SQLite database is NOT allowed</h2>
+
+<p>As documented in the "<strong>A User’s iCloud Storage Is Limited</strong>" section of <a href="https://developer.apple.com/library/mac/documentation/General/Conceptual/iCloudDesignGuide/Chapters/iCloudFundametals.html">iCloudFundamentals in Mac Developer Library iCloud Design Guide</a> (near the beginning):</p>
+
+<blockquote>
+<ul>
+<li>
+<b>DO</b> store the following in iCloud:
+  <ul>
+   <li>[<i>other items omitted</i>]</li>
+   <li>Change log files for a SQLite database (a SQLite database’s store file must never be stored in iCloud)</li>
+  </ul>
+</li>
+<li>
+<b>DO NOT</b> store the following in iCloud:
+  <ul>
+   <li>[<i>items omitted</i>]</li>
+  </ul>
+</li>
+</ul>
+- <a href="https://developer.apple.com/library/mac/documentation/General/Conceptual/iCloudDesignGuide/Chapters/iCloudFundametals.html">iCloudFundamentals in Mac Developer Library iCloud Design Guide</a>
+</blockquote>
+
+<h3>
+<a id="more-information-about-icloud-backup" class="anchor" href="#more-information-about-icloud-backup" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>More information about iCloud backup</h3>
+
+<p>There are two ways iCloud backup is configured:</p>
+
+<ul>
+<li>For each app, iCloud backup is configured in <code>config.xml</code> and is <em>unfortunately</em> <strong>enabled by default</strong> as documented at: <a href="https://cordova.apache.org/docs/en/6.0.0/guide/platforms/ios/config.html">https://cordova.apache.org/docs/en/6.0.0/guide/platforms/ios/config.html</a>
+</li>
+<li>In this plugin, the database is stored in the <code>Documents</code> subdirectory by default, which is backed up to iCloud. You can use the <code>location</code> option in <code>sqlitePlugin.openDatabase()</code> to store the database in a subdirectory that is <em>NOT</em> backed up to iCloud.</li>
+</ul>
+
+<p>Unless you want your app to use iCloud backup for some reason, it is recommended to turn it off as documented in: <a href="https://cordova.apache.org/docs/en/6.0.0/guide/platforms/ios/config.html">https://cordova.apache.org/docs/en/6.0.0/guide/platforms/ios/config.html</a></p>
+
+<p><a href="https://github.com/brodybits">@brodybits</a> reported <a href="https://issues.apache.org/jira/browse/CB-9830">Cordova bug CB-9830</a> to disable iCloud backup by default in <code>config.xml</code>.</p>
+
+<h2>
+<a id="support-this-project" class="anchor" href="#support-this-project" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support this project</h2>
+
+<p><a href="https://github.com/brodybits">@brodybits (Christopher J. Brody aka Chris Brody)</a> dedicates a significant amout of working time to maintain and improve this project, and has turned down multiple full-time work opportunities in order to support this project. <a href="https://github.com/brodybits">@brodybits</a> is available for part-time work in areas related to this project including priority support, priority feature development, and higher-level application development. Such part-time assignments would help <a href="https://github.com/brodybits">@brodybits</a> keep this project alive.</p>
+
+<h2>
+<a id="status" class="anchor" href="#status" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Status</h2>
+
+<ul>
+<li>Android version in this version branch is now using the built-in Android SQLite database classes. Integration with the lightweight <a href="https://github.com/liteglue/Android-sqlite-connector">Android-sqlite-connector</a> is available in <a href="https://github.com/litehelpers/cordova-sqlite-ext">litehelpers / cordova-sqlite-ext</a> and <a href="https://github.com/litehelpers/Cordova-sqlite-legacy">litehelpers / Cordova-sqlite-legacy</a>.</li>
+<li>Windows 8.1/Windows Phone 8.1 version is removed from this project, available in <a href="https://github.com/litehelpers/cordova-sqlite-ext">litehelpers / cordova-sqlite-ext</a> and <a href="https://github.com/litehelpers/Cordova-sqlite-legacy">litehelpers / Cordova-sqlite-legacy</a>.</li>
+<li>WP(7/8) is not supported by this version branch, moved to <a href="https://github.com/litehelpers/Cordova-sqlite-legacy">litehelpers / Cordova-sqlite-legacy</a>.</li>
+<li>The following features are moved to <a href="https://github.com/litehelpers/cordova-sqlite-ext">litehelpers / cordova-sqlite-ext</a> and removed from this project:
+
+<ul>
+<li>REGEXP support</li>
+<li>Pre-populated database</li>
+</ul>
+</li>
+<li>Amazon Fire-OS is dropped due to lack of support by Cordova. Android version should be used to deploy to Fire-OS 5.0(+) devices ref: <a href="https://github.com/cordova/cordova-discuss/issues/32#issuecomment-167021676">cordova/cordova-discuss#32 (comment)</a>
+</li>
+<li>FTS3, FTS4, and R-Tree support is tested working OK in this version (for all target platforms in this version branch Android/iOS)</li>
+<li>Android is supported back to SDK 10 (a.k.a. Gingerbread, Android 2.3.3); support for older versions is available upon request.</li>
+<li>API to open the database may be changed somewhat to be more streamlined. Transaction and single-statement query API will NOT be changed.</li>
+<li>In case of memory issues please use smaller transactions or use the version (with a different licensing scheme) at: <a href="https://github.com/litehelpers/Cordova-sqlite-enterprise-free">litehelpers / Cordova-sqlite-enterprise-free</a> or <a href="https://github.com/litehelpers/cordova-sqlite-workers-evfree">litehelpers / cordova-sqlite-workers-evfree</a>
+</li>
+</ul>
+
+<h2>
+<a id="announcements" class="anchor" href="#announcements" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Announcements</h2>
+
+<ul>
+<li>Added simple sql batch query function</li>
+<li>Added echo test function to verify installation of this plugin</li>
+<li>Published <a href="https://github.com/litehelpers/Cordova-sqlite-legacy">litehelpers / Cordova-sqlite-legacy</a> for maintenance of WP(7/8) version, working with the other supported platforms Android/iOS/Windows 8.1(+)/Windows Phone 8.1(+)</li>
+<li>All iOS operations are now using background processing (reported to resolve intermittent problems with cordova-ios@4.0.1)</li>
+<li>Published <a href="https://github.com/brodybits/Cordova-quick-start-checklist">brodybits / Cordova-quick-start-checklist</a> and <a href="https://github.com/brodybits/Cordova-troubleshooting-guide">brodybits / Cordova-troubleshooting-guide</a>
+</li>
+<li>A version with support for web workers is available (with a different licensing scheme) at: <a href="https://github.com/litehelpers/cordova-sqlite-workers-evfree">litehelpers / cordova-sqlite-workers-evfree</a>
+</li>
+<li>A version with pre-populated database support added for Windows "Universal" and REGEXP support added for Android is available at: <a href="https://github.com/litehelpers/cordova-sqlite-ext">litehelpers / cordova-sqlite-ext</a>
+</li>
+<li>PhoneGap Build is now supported through the npm package: <a href="http://phonegap.com/blog/2015/05/26/npm-plugins-available/">http://phonegap.com/blog/2015/05/26/npm-plugins-available/</a>
+</li>
+<li>
+<a href="https://github.com/MetaMemoryT/websql-promise">MetaMemoryT / websql-promise</a> now provides a Promises-based interface to both Web SQL and this plugin</li>
+<li>iOS version is now fixed to override the correct pluginInitialize method and should work with recent versions of iOS</li>
+<li>
+<a href="https://www.zetetic.net/sqlcipher/">SQLCipher</a> for Windows (8.1) in addition to Android &amp; iOS is now supported by <a href="https://github.com/litehelpers/Cordova-sqlcipher-adapter">litehelpers / Cordova-sqlcipher-adapter</a>
+</li>
+<li>New <code>openDatabase</code> and <code>deleteDatabase</code> <code>location</code> option to select database location (iOS <em>only</em>) and disable iCloud backup</li>
+</ul>
+
+<h2>
+<a id="highlights" class="anchor" href="#highlights" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Highlights</h2>
+
+<ul>
+<li>Drop-in replacement for HTML5/<a href="http://www.w3.org/TR/webdatabase/">Web SQL API</a>, the only change should be <code>window.openDatabase()</code> --&gt; <code>sqlitePlugin.openDatabase()</code>
+</li>
+<li>Failure-safe nested transactions with batch processing optimizations</li>
+<li>As described in <a href="http://brodyspark.blogspot.com/2012/12/cordovaphonegap-sqlite-plugins-offer.html">this posting</a>:
+
+<ul>
+<li>Keeps sqlite database in a user data location that is known; can be reconfigured (iOS version); and synchronized to iCloud by default (iOS version; can be disabled as described below).</li>
+<li>No 5MB maximum, more information at: <a href="http://www.sqlite.org/limits.html">http://www.sqlite.org/limits.html</a>
+</li>
+</ul>
+</li>
+</ul>
+
+<h2>
+<a id="some-apps-using-this-plugin" class="anchor" href="#some-apps-using-this-plugin" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Some apps using this plugin</h2>
+
+<ul>
+<li>
+<a href="http://www.trailforks.com/apps/map/">Traiforks Mountain Bike Trail Map App</a> with a couple of nice videos at: <a href="http://www.pinkbike.com/news/trailforks-app-released.html">http://www.pinkbike.com/news/trailforks-app-released.html</a>
+</li>
+<li>
+<a href="http://getitdoneapp.com/">Get It Done app</a> by <a href="http://marcucio.com/">marcucio.com</a>
+</li>
+<li>
+<a href="http://www.kaahe.org/en/index.php?option=com_content&amp;view=article&amp;id=817">KAAHE Health Encyclopedia</a>: Official health app of the Kingdom of Saudi Arabia.</li>
+<li>
+<a href="http://www.larkwire.com/">Larkwire</a> (iOS version): Learn bird songs the fun way</li>
+<li>
+<a href="https://play.google.com/store/apps/details?id=com.tangorin.app">Tangorin</a> (Android) Japanese Dictionary at <a href="http://tangorin.com/">tangorin.com</a>
+</li>
+</ul>
+
+<h2>
+<a id="known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Known issues</h2>
+
+<ul>
+<li>iOS version does not support certain rapidly repeated open-and-close or open-and-delete test scenarios due to how the implementation handles background processing</li>
+<li>As described below, auto-vacuum is NOT enabled by default.</li>
+<li>INSERT statement that affects multiple rows (due to SELECT cause or using TRIGGER(s), for example) does not report proper rowsAffected on Android</li>
+<li>Memory issue observed when adding a large number of records due to the JSON implementation which is improved in <a href="https://github.com/litehelpers/Cordova-sqlite-enterprise-free">litehelpers / Cordova-sqlite-enterprise-free</a> (available with a different licensing scheme)</li>
+<li>A stability issue was reported on the iOS version when in use together with <a href="http://sockjs.org/">SockJS</a> client such as <a href="https://github.com/pusher/pusher-js">pusher-js</a> at the same time (see <a href="https://github.com/litehelpers/Cordova-sqlite-storage/issues/196">litehelpers/Cordova-sqlite-storage#196</a>). The workaround is to call sqlite functions and <a href="http://sockjs.org/">SockJS</a> client functions in separate ticks (using setTimeout with 0 timeout).</li>
+<li>If a sql statement fails for which there is no error handler or the error handler does not return <code>false</code> to signal transaction recovery, the plugin fires the remaining sql callbacks before aborting the transaction.</li>
+<li>In case of an error, the error <code>code</code> member is bogus on Android (fixed for Android in <a href="https://github.com/litehelpers/Cordova-sqlite-enterprise-free">litehelpers / Cordova-sqlite-enterprise-free</a>).</li>
+<li>Possible crash on Android when using Unicode emoji characters due to <a href="https://code.google.com/p/android/issues/detail?id=81341">Android bug 81341</a>, which <em>should</em> be fixed in Android 6.x</li>
+<li>In-memory database <code>db=window.sqlitePlugin.openDatabase({name: ":memory:"})</code> is currently not supported.</li>
+<li>Close database bugs described below.</li>
+<li>When a database is opened and deleted without closing, the iOS version is known to leak resources.</li>
+<li>It is NOT possible to open multiple databases with the same name but in different locations (iOS version).</li>
+<li>Problems reported with PhoneGap Build in the past:
+
+<ul>
+<li>PhoneGap Build Hydration.</li>
+<li>Apparently FIXED: <del>PhoneGap Build may fail to build the iOS version unless the name of the app starts with an uppercase and contains no spaces (see <a href="https://github.com/litehelpers/Cordova-sqlite-storage/issues/243">litehelpers/Cordova-sqlite-storage#243</a>; <a href="https://github.com/Wizcorp/phonegap-facebook-plugin/issues/830">Wizcorp/phonegap-facebook-plugin#830</a>; <a href="https://github.com/phonegap/build/issues/431">phonegap/build#431</a>).</del>
+</li>
+</ul>
+</li>
+</ul>
+
+<h2>
+<a id="other-limitations" class="anchor" href="#other-limitations" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Other limitations</h2>
+
+<ul>
+<li>The db version, display name, and size parameter values are not supported and will be ignored.</li>
+<li>This plugin will not work before the callback for the 'deviceready' event has been fired, as described in <strong>Usage</strong>. (This is consistent with the other Cordova plugins.)</li>
+<li>This version will not work within a web worker (not properly supported by the Cordova framework).</li>
+<li>In-memory database <code>db=window.sqlitePlugin.openDatabase({name: ":memory:"})</code> is currently not supported.</li>
+<li>The Android version cannot work with more than 100 open db files (due to the threading model used).</li>
+<li>UNICODE line separator (<code>\u2028</code>) and paragraph separator (<code>\u2029</code>) are currently not supported and known to be broken in iOS version due to <a href="https://issues.apache.org/jira/browse/CB-9435">Cordova bug CB-9435</a>. There <em>may</em> be a similar issue with other UNICODE characters in the iOS version (needs further investigation). This is fixed in: <a href="https://github.com/litehelpers/Cordova-sqlite-enterprise-free">litehelpers / Cordova-sqlite-enterprise-free</a> (available with a different licensing scheme)</li>
+<li>Blob type is currently not supported and known to be broken on multiple platforms.</li>
+<li>Case-insensitive matching and other string manipulations on Unicode characters, which is provided by optional ICU integration in the sqlite source and working with recent versions of Android, is not supported for any target platforms.</li>
+<li>iOS version uses a thread pool but with only one thread working at a time due to "synchronized" database access</li>
+<li>Large query result can be slow, also due to JSON implementation</li>
+<li>ATTACH to another database file is not supported (due to path specifications, which work differently depending on the target platform)</li>
+<li>User-defined savepoints are not supported and not expected to be compatible with the transaction locking mechanism used by this plugin. In addition, the use of BEGIN/COMMIT/ROLLBACK statements is not supported.</li>
+<li>Problems have been reported when using this plugin with Crosswalk (for Android). It may help to install Crosswalk as a plugin instead of using Crosswalk to create the project.</li>
+<li>Does not work with <a href="https://github.com/axemclion/react-native-cordova-plugin">axemclion / react-native-cordova-plugin</a> since the <code>window.sqlitePlugin</code> object exported (ES5 feature). It is recommended to use <a href="https://github.com/andpor/react-native-sqlite-storage">andpor / react-native-sqlite-storage</a> for SQLite database access with React Native Android/iOS instead.</li>
+</ul>
+
+<h2>
+<a id="further-testing-needed" class="anchor" href="#further-testing-needed" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Further testing needed</h2>
+
+<ul>
+<li>Multi-page apps</li>
+<li>Use within <a href="http://docs.phonegap.com/en/edge/cordova_inappbrowser_inappbrowser.md.html">InAppBrowser</a>
+</li>
+<li>Use within an iframe (see <a href="https://github.com/litehelpers/Cordova-sqlite-storage/issues/368#issuecomment-154046367">litehelpers/Cordova-sqlite-storage#368 (comment)</a>)</li>
+<li>SAVEPOINT(s)</li>
+<li>R-Tree is not tested with some older releases of Android</li>
+<li>UNICODE characters not fully tested</li>
+<li>Use with TRIGGER(s), JOIN and ORDER BY RANDOM</li>
+<li>Integration with JXCore for Cordova (must be built without sqlite(3) built-in)</li>
+<li>Delete an open database inside a statement or transaction callback.</li>
+</ul>
+
+<h2>
+<a id="some-tips-and-tricks" class="anchor" href="#some-tips-and-tricks" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Some tips and tricks</h2>
+
+<ul>
+<li>If you run into problems and your code follows the asynchronous HTML5/<a href="http://www.w3.org/TR/webdatabase/">Web SQL</a> transaction API, you can try opening your database using <code>window.openDatabase</code> and see if you get the same problems.</li>
+<li>In case your database schema may change, it is recommended to keep a table with one row and one column to keep track of your own shema version number. It is possible to add it later. The recommended schema update procedure is described below.</li>
+</ul>
+
+<h2>
+<a id="common-pitfalls" class="anchor" href="#common-pitfalls" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Common pitfall(s)</h2>
+
+<ul>
+<li>It is NOT allowed to execute sql statements on a transaction following the HTML5/<a href="http://www.w3.org/TR/webdatabase/">Web SQL API</a>, as described below.</li>
+<li>The plugin class name starts with "SQL" in capital letters, but in Javascript the <code>sqlitePlugin</code> object name starts with "sql" in small letters.</li>
+<li>Attempting to open a database before receiving the 'deviceready' event callback.</li>
+<li>Inserting STRING into ID field</li>
+<li>Auto-vacuum is NOT enabled by default. It is recommended to periodically VACUUM the database.</li>
+</ul>
+
+<h2>
+<a id="weird-pitfalls" class="anchor" href="#weird-pitfalls" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Weird pitfall(s)</h2>
+
+<ul>
+<li>intent whitelist: blocked intent such as external URL intent <em>may</em> cause this and perhaps certain Cordova plugin(s) to misbehave (see <a href="https://github.com/litehelpers/Cordova-sqlite-storage/issues/396">litehelpers/Cordova-sqlite-storage#396</a>)</li>
+</ul>
+
+<h2>
+<a id="angularngcordovaionic-related-pitfalls" class="anchor" href="#angularngcordovaionic-related-pitfalls" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Angular/ngCordova/Ionic-related pitfalls</h2>
+
+<ul>
+<li>Angular/ngCordova/Ionic controller/factory/service callbacks may be triggered before the 'deviceready' event is fired</li>
+<li>As discussed in <a href="https://github.com/litehelpers/Cordova-sqlite-storage/issues/355">#355</a>, it may be necessary to install ionic-plugin-keyboard</li>
+</ul>
+
+<h2>
+<a id="major-todos" class="anchor" href="#major-todos" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Major TODOs</h2>
+
+<ul>
+<li>Integrate with IndexedDBShim and some other libraries such as Sequelize, Squel.js, WebSqlSync, Persistence.js, Knex, etc.</li>
+</ul>
+
+<h2>
+<a id="alternatives" class="anchor" href="#alternatives" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Alternatives</h2>
+
+<h3>
+<a id="other-versions" class="anchor" href="#other-versions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Other versions</h3>
+
+<ul>
+<li>
+<a href="https://github.com/litehelpers/cordova-sqlite-ext">litehelpers / cordova-sqlite-ext</a> - version with REGEXP support Android/iOS and pre-populated database support <em>added</em> for Windows 8.1(+)/Windows Phone 8.1(+)</li>
+<li>
+<a href="https://github.com/litehelpers/Cordova-sqlcipher-adapter">litehelpers / Cordova-sqlcipher-adapter</a> - supports <a href="https://www.zetetic.net/sqlcipher/">SQLCipher</a> for Android, iOS, and Windows 8.1(+)/Windows Phone 8.1(+)</li>
+<li>
+<a href="https://github.com/litehelpers/Cordova-sqlite-legacy">litehelpers / Cordova-sqlite-legacy</a> - maintenance of WP(7/8) version-working with the other supported platforms Android/iOS/Windows 8.1(+)/Windows Phone 8.1(+)</li>
+<li>
+<a href="https://github.com/litehelpers/Cordova-sqlite-enterprise-free">litehelpers / Cordova-sqlite-enterprise-free</a> - internal memory improvements to support larger transactions (Android/iOS) and fix to support all Unicode characters (iOS) - with a different licensing scheme</li>
+<li>
+<a href="https://github.com/litehelpers/cordova-sqlite-workers-evfree">litehelpers / cordova-sqlite-workers-evfree</a> - version with support for web workers, includes internal memory improvements to support larger transactions (Android/iOS) and fix to support all Unicode characters (iOS) - with a different licensing scheme</li>
+<li>Adaptation for React Native Android and iOS: <a href="https://github.com/andpor/react-native-sqlite-storage">andpor / react-native-sqlite-storage</a>
+</li>
+<li>Original version for iOS (with a slightly different transaction API): <a href="https://github.com/davibe/Phonegap-SQLitePlugin">davibe / Phonegap-SQLitePlugin</a>
+</li>
+</ul>
+
+<h3>
+<a id="other-sqlite-adapter-projects" class="anchor" href="#other-sqlite-adapter-projects" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Other SQLite adapter projects</h3>
+
+<ul>
+<li>
+<a href="https://github.com/object-layer/anysql">object-layer / AnySQL</a> - Unified SQL API over multiple database engines</li>
+<li>Simpler sqlite plugin with a simpler API: <a href="https://github.com/samikrc/CordovaSQLite">samikrc / CordovaSQLite</a>
+</li>
+<li>
+<a href="https://github.com/an-rahulpandey/cordova-plugin-dbcopy">an-rahulpandey / cordova-plugin-dbcopy</a> - Alternative way to copy pre-populated database</li>
+<li>
+<a href="https://github.com/EionRobb/phonegap-win8-sqlite">EionRobb / phonegap-win8-sqlite</a> - WebSQL add-on for Win8/Metro apps (perhaps with a different API), using an old version of the C++ library from <a href="https://github.com/doo/SQLite3-WinRT">SQLite3-WinRT Component</a> (as referenced by <a href="https://github.com/01org/cordova-win8">01org / cordova-win8</a>)</li>
+<li>
+<a href="https://github.com/doo/SQLite3-WinRT">SQLite3-WinRT Component</a> - C++ component that provides a nice SQLite API with promises for WinJS</li>
+<li>
+<a href="https://github.com/01org/cordova-win8">01org / cordova-win8</a> - old, unofficial version of Cordova API support for Windows 8 Metro that includes an old version of the C++ <a href="https://github.com/doo/SQLite3-WinRT">SQLite3-WinRT Component</a>
+</li>
+<li>
+<a href="https://github.com/MSOpenTech/cordova-plugin-websql">MSOpenTech / cordova-plugin-websql</a> - Windows 8(+) and Windows Phone 8(+) WebSQL plugin versions in C#</li>
+<li>
+<a href="https://github.com/Thinkwise/cordova-plugin-websql">Thinkwise / cordova-plugin-websql</a> - fork of <a href="https://github.com/MSOpenTech/cordova-plugin-websql">MSOpenTech / cordova-plugin-websql</a> that supports asynchronous execution</li>
+<li>
+<a href="https://github.com/MetaMemoryT/websql-client">MetaMemoryT / websql-client</a> - provides the same API and connects to <a href="https://github.com/MetaMemoryT/websql-server">websql-server</a> through WebSockets.</li>
+</ul>
+
+<h3>
+<a id="alternative-solutions" class="anchor" href="#alternative-solutions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Alternative solutions</h3>
+
+<ul>
+<li>
+<a href="https://github.com/ABB-Austin/cordova-plugin-indexeddb-async">ABB-Austin / cordova-plugin-indexeddb-async</a> - Asynchronous IndexedDB plugin for Cordova that uses <a href="https://github.com/axemclion/IndexedDBShim">axemclion / IndexedDBShim</a> (Browser/iOS/Android/Windows) and <a href="https://github.com/Thinkwise/cordova-plugin-websql">Thinkwise / cordova-plugin-websql</a> - (Windows)</li>
+<li>Another sqlite binding for React-Native (iOS version): <a href="https://github.com/almost/react-native-sqlite">almost/react-native-sqlite</a>
+</li>
+<li>Use <a href="https://www.nativescript.org">NativeScript</a> with its web view and <a href="https://github.com/Natha%0AnaelA/nativescript-sqlite">NathanaelA / nativescript-sqlite</a> (Android and/or iOS)</li>
+<li>Standard HTML5 <a href="https://en.wikipedia.org/wiki/Web_storage#localStorage">local storage</a>
+</li>
+<li><a href="https://realm.io/">Realm.io</a></li>
+</ul>
+
+<h1>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h1>
+
+<h2>
+<a id="echo-test" class="anchor" href="#echo-test" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Echo test</h2>
+
+<p>To verify that both the Javascript and native part of this plugin are installed in your application:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">echoTest</span>(successCallback, errorCallback);</pre></div>
+
+<p><strong>IMPORTANT:</strong> Please wait for the 'deviceready' event (see below for an example).</p>
+
+<h2>
+<a id="general" class="anchor" href="#general" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>General</h2>
+
+<p>The idea is to emulate the HTML5/<a href="http://www.w3.org/TR/webdatabase/">Web SQL API</a> as closely as possible. The only major change is to use <code>window.sqlitePlugin.openDatabase()</code> (or <code>sqlitePlugin.openDatabase()</code>) instead of <code>window.openDatabase()</code>. If you see any other major change please report it, it is probably a bug.</p>
+
+<p><strong>NOTE:</strong> If a sqlite statement in a transaction fails with an error, the error handler <em>must</em> return <code>false</code> in order to recover the transaction. This is correct according to the HTML5/<a href="http://www.w3.org/TR/webdatabase/">Web SQL API</a> standard. This is different from the WebKit implementation of Web SQL in Android and iOS which recovers the transaction if a sql error hander returns a non-<code>true</code> value.</p>
+
+<h2>
+<a id="opening-a-database" class="anchor" href="#opening-a-database" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Opening a database</h2>
+
+<p>There are two options to open a database access object:</p>
+
+<ul>
+<li>
+<strong>Recommended:</strong> <code>var db = window.sqlitePlugin.openDatabase({name: "my.db", location: 1}, successcb, errorcb);</code>
+</li>
+<li>
+<strong>Classical:</strong> <code>var db = window.sqlitePlugin.openDatabase("myDatabase.db", "1.0", "Demo", -1);</code>
+</li>
+</ul>
+
+<p>The <code>location</code> option is used to select the database subdirectory location (iOS <em>only</em>) with the following choices:</p>
+
+<ul>
+<li>
+<code>0</code> (default): <code>Documents</code> - visible to iTunes and backed up by iCloud</li>
+<li>
+<code>1</code>: <code>Library</code> - backed up by iCloud, <em>NOT</em> visible to iTunes</li>
+<li>
+<code>2</code>: <code>Library/LocalDatabase</code> - <em>NOT</em> visible to iTunes and <em>NOT</em> backed up by iCloud</li>
+</ul>
+
+<p><strong>IMPORTANT:</strong> Please wait for the 'deviceready' event, as in the following example:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">// Wait for Cordova to load</span>
+<span class="pl-c1">document</span>.<span class="pl-c1">addEventListener</span>(<span class="pl-s"><span class="pl-pds">'</span>deviceready<span class="pl-pds">'</span></span>, onDeviceReady, <span class="pl-c1">false</span>);
+
+<span class="pl-c">// Cordova is ready</span>
+<span class="pl-k">function</span> <span class="pl-en">onDeviceReady</span>() {
+  <span class="pl-k">var</span> db <span class="pl-k">=</span> <span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">openDatabase</span>({name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>my.db<span class="pl-pds">"</span></span>});
+  <span class="pl-c">// ...</span>
+}</pre></div>
+
+<p>The successcb and errorcb callback parameters are optional but can be extremely helpful in case anything goes wrong. For example:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">openDatabase</span>({name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>my.db<span class="pl-pds">"</span></span>}, <span class="pl-k">function</span>(<span class="pl-smi">db</span>) {
+  <span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+    <span class="pl-c">// ...</span>
+  }, <span class="pl-k">function</span>(<span class="pl-smi">err</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Open database ERROR: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-c1">JSON</span>.<span class="pl-en">stringify</span>(err));
+  });
+});</pre></div>
+
+<p>If any sql statements or transactions are attempted on a database object before the openDatabase result is known, they will be queued and will be aborted in case the database cannot be opened.</p>
+
+<p><strong>OTHER NOTES:</strong></p>
+
+<ul>
+<li>The database file name should include the extension, if desired.</li>
+<li>It is possible to open multiple database access objects for the same database.</li>
+<li>The database access object can be closed as described below.</li>
+</ul>
+
+<h3>
+<a id="workaround-for-android-db-locking-issue" class="anchor" href="#workaround-for-android-db-locking-issue" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Workaround for Android db locking issue</h3>
+
+<p><a href="https://github.com/litehelpers/Cordova-sqlite-storage/issues/193">litehelpers/Cordova-sqlite-storage#193</a> was reported (as observed by several app developers) that on some newer versions of the Android database classes, if the app is stopped or aborted without closing the database then:</p>
+
+<ul>
+<li>(sometimes) there is an unexpected database lock</li>
+<li>the data that was inserted is lost.</li>
+</ul>
+
+<p>This issue is suspected to be caused by <a href="https://github.com/android/platform_external_sqlite/commit/d4f30d0d1544f8967ee5763c4a1680cb0553039f">this Android sqlite commit</a>, which references and includes the sqlite commit at: <a href="http://www.sqlite.org/src/info/6c4c2b7dba">http://www.sqlite.org/src/info/6c4c2b7dba</a></p>
+
+<p>There is an optional workaround that simply closes and reopens the database file at the end of every transaction that is committed. The workaround is enabled by opening the database with options as follows:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> db <span class="pl-k">=</span> <span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">openDatabase</span>({name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>my.db<span class="pl-pds">'</span></span>, androidLockWorkaround<span class="pl-k">:</span> <span class="pl-c1">1</span>});</pre></div>
+
+<p><strong>IMPORTANT NOTE:</strong> This workaround is <em>only</em> applied when using <code>db.transaction()</code>, <em>not</em> applied when running <code>executeSql()</code> on the database object.</p>
+
+<h2>
+<a id="sql-transactions" class="anchor" href="#sql-transactions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>SQL transactions</h2>
+
+<p>The following types of SQL transactions are supported by this version:</p>
+
+<ul>
+<li>Single-statement transactions</li>
+<li>SQL batch query transactions</li>
+<li>Standard asynchronous transactions</li>
+</ul>
+
+<h3>
+<a id="single-statement-transactions" class="anchor" href="#single-statement-transactions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Single-statement transactions</h3>
+
+<p>Sample:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>SELECT LENGTH('tenletters') AS stringlength<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span> (<span class="pl-smi">res</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>got stringlength: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">stringlength</span>);
+}, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>SELECT error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">error</span>.<span class="pl-smi">message</span>);
+});</pre></div>
+
+<h3>
+<a id="sql-batch-query-transactions" class="anchor" href="#sql-batch-query-transactions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>SQL batch query transactions</h3>
+
+<p>Sample:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">db</span>.<span class="pl-en">sqlBatch</span>([
+  <span class="pl-s"><span class="pl-pds">'</span>DROP TABLE IF EXISTS MyTable<span class="pl-pds">'</span></span>,
+  <span class="pl-s"><span class="pl-pds">'</span>CREATE TABLE MyTable (SampleColumn)<span class="pl-pds">'</span></span>,
+  [ <span class="pl-s"><span class="pl-pds">'</span>INSERT INTO MyTable VALUES (?)<span class="pl-pds">'</span></span>, [<span class="pl-s"><span class="pl-pds">'</span>test-value<span class="pl-pds">'</span></span>] ],
+], <span class="pl-k">function</span>() {
+  <span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">'</span>SELECT * FROM MyTable<span class="pl-pds">'</span></span>, [], <span class="pl-k">function</span> (<span class="pl-smi">res</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Sample column value: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">SampleColumn</span>);
+  });
+}, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Populate table error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">error</span>.<span class="pl-smi">message</span>);
+});</pre></div>
+
+<p>In case of an error, all changes in a sql batch are automatically discarded using ROLLBACK.</p>
+
+<h3>
+<a id="standard-asynchronous-transactions" class="anchor" href="#standard-asynchronous-transactions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Standard asynchronous transactions</h3>
+
+<p>Standard asynchronous transactions follow the HTML5/<a href="http://www.w3.org/TR/webdatabase/">Web SQL API</a> which is very well documented and uses BEGIN and COMMIT or ROLLBACK to keep the transactions failure-safe. Here is a very simple example from the test suite:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+  <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>SELECT UPPER('Some US-ASCII text') AS uppertext<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>res.rows.item(0).uppertext: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">uppertext</span>);
+  }, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>SELECT error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">error</span>.<span class="pl-smi">message</span>);
+  });
+}, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>transaction error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">error</span>.<span class="pl-smi">message</span>);
+}, <span class="pl-k">function</span>() {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>transaction ok<span class="pl-pds">'</span></span>);
+});</pre></div>
+
+<p>In case of a read-only transaction, it is possible to use <code>readTransaction</code> which will not use BEGIN, COMMIT, or ROLLBACK:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">db</span>.<span class="pl-en">readTransaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+  <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>SELECT UPPER('Some US-ASCII text') AS uppertext<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>res.rows.item(0).uppertext: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">uppertext</span>);
+  }, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>SELECT error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">error</span>.<span class="pl-smi">message</span>);
+  });
+}, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>transaction error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">error</span>.<span class="pl-smi">message</span>);
+}, <span class="pl-k">function</span>() {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>transaction ok<span class="pl-pds">'</span></span>);
+});</pre></div>
+
+<p><strong>WARNING:</strong> It is NOT allowed to execute sql statements on a transaction after it has finished. Here is an example from my <a href="http://www.brodybits.com/cordova/sqlite/api/jquery/2015/10/26/populating-cordova-sqlite-storage-with-the-jquery-api.html">Populating Cordova SQLite storage with the JQuery API post</a>:</p>
+
+<div class="highlight highlight-source-js"><pre>  <span class="pl-c">// BROKEN SAMPLE:</span>
+  <span class="pl-k">var</span> db <span class="pl-k">=</span> <span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">openDatabase</span>({name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>test.db<span class="pl-pds">"</span></span>});
+  <span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>DROP TABLE IF EXISTS tt<span class="pl-pds">"</span></span>);
+  <span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>CREATE TABLE tt (data)<span class="pl-pds">"</span></span>);
+
+  <span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+    <span class="pl-smi">$</span>.<span class="pl-en">ajax</span>({
+      url<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>https://api.github.com/users/litehelpers/repos<span class="pl-pds">'</span></span>,
+      dataType<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>json<span class="pl-pds">'</span></span>,
+      <span class="pl-en">success</span><span class="pl-k">:</span> <span class="pl-k">function</span>(<span class="pl-smi">res</span>) {
+        <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Got AJAX response: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-c1">JSON</span>.<span class="pl-en">stringify</span>(res));
+        <span class="pl-smi">$</span>.<span class="pl-en">each</span>(res, <span class="pl-k">function</span>(<span class="pl-smi">i</span>, <span class="pl-smi">item</span>) {
+          <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>REPO NAME: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">item</span>.<span class="pl-c1">name</span>);
+          <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>INSERT INTO tt values (?)<span class="pl-pds">"</span></span>, <span class="pl-c1">JSON</span>.<span class="pl-en">stringify</span>(<span class="pl-smi">item</span>.<span class="pl-c1">name</span>));
+        });
+      }
+    });
+  }, <span class="pl-k">function</span>(<span class="pl-smi">e</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Transaction error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">e</span>.<span class="pl-smi">message</span>);
+  }, <span class="pl-k">function</span>() {
+    <span class="pl-c">// Check results:</span>
+    <span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">'</span>SELECT COUNT(*) FROM tt<span class="pl-pds">'</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">res</span>) {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Check SELECT result: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-c1">JSON</span>.<span class="pl-en">stringify</span>(<span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>)));
+    });
+  });</pre></div>
+
+<p>You can find more details and a step-by-step description how to do this right in the <a href="http://www.brodybits.com/cordova/sqlite/api/jquery/2015/10/26/populating-cordova-sqlite-storage-with-the-jquery-api.html">Populating Cordova SQLite storage with the JQuery API post</a>:</p>
+
+<h2>
+<a id="background-processing" class="anchor" href="#background-processing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Background processing</h2>
+
+<p>The threading model depends on which version is used:</p>
+
+<ul>
+<li>For Android, one background thread per db;</li>
+<li>for iOS, background processing using a very limited thread pool (only one thread working at a time).</li>
+</ul>
+
+<h2>
+<a id="sample-with-pragma-feature" class="anchor" href="#sample-with-pragma-feature" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Sample with PRAGMA feature</h2>
+
+<p>Creates a table, adds a single entry, then queries the count to check if the item was inserted as expected. Note that a new transaction is created in the middle of the first callback.</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">// Wait for Cordova to load</span>
+<span class="pl-c1">document</span>.<span class="pl-c1">addEventListener</span>(<span class="pl-s"><span class="pl-pds">'</span>deviceready<span class="pl-pds">'</span></span>, onDeviceReady, <span class="pl-c1">false</span>);
+
+<span class="pl-c">// Cordova is ready</span>
+<span class="pl-k">function</span> <span class="pl-en">onDeviceReady</span>() {
+  <span class="pl-k">var</span> db <span class="pl-k">=</span> <span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">openDatabase</span>({name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>my.db<span class="pl-pds">"</span></span>});
+
+  <span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+    <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">'</span>DROP TABLE IF EXISTS test_table<span class="pl-pds">'</span></span>);
+    <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">'</span>CREATE TABLE IF NOT EXISTS test_table (id integer primary key, data text, data_num integer)<span class="pl-pds">'</span></span>);
+
+    <span class="pl-c">// demonstrate PRAGMA:</span>
+    <span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>pragma table_info (test_table);<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">res</span>) {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>PRAGMA res: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-c1">JSON</span>.<span class="pl-en">stringify</span>(res));
+    });
+
+    <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>INSERT INTO test_table (data, data_num) VALUES (?,?)<span class="pl-pds">"</span></span>, [<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, <span class="pl-c1">100</span>], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>insertId: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-smi">insertId</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- probably 1<span class="pl-pds">"</span></span>);
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>rowsAffected: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-smi">rowsAffected</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- should be 1<span class="pl-pds">"</span></span>);
+
+      <span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+        <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>select count(id) as cnt from test_table;<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+          <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>res.rows.length: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">length</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- should be 1<span class="pl-pds">"</span></span>);
+          <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>res.rows.item(0).cnt: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">cnt</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- should be 1<span class="pl-pds">"</span></span>);
+        });
+      });
+
+    }, <span class="pl-k">function</span>(<span class="pl-smi">e</span>) {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>ERROR: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">e</span>.<span class="pl-smi">message</span>);
+    });
+  });
+}</pre></div>
+
+<p><strong>NOTE:</strong> PRAGMA statements must be executed in <code>executeSql()</code> on the database object (i.e. <code>db.executeSql()</code>) and NOT within a transaction.</p>
+
+<h2>
+<a id="sample-with-transaction-level-nesting" class="anchor" href="#sample-with-transaction-level-nesting" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Sample with transaction-level nesting</h2>
+
+<p>In this case, the same transaction in the first executeSql() callback is being reused to run executeSql() again.</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">// Wait for Cordova to load</span>
+<span class="pl-c1">document</span>.<span class="pl-c1">addEventListener</span>(<span class="pl-s"><span class="pl-pds">'</span>deviceready<span class="pl-pds">'</span></span>, onDeviceReady, <span class="pl-c1">false</span>);
+
+<span class="pl-c">// Cordova is ready</span>
+<span class="pl-k">function</span> <span class="pl-en">onDeviceReady</span>() {
+  <span class="pl-k">var</span> db <span class="pl-k">=</span> <span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">openDatabase</span>(<span class="pl-s"><span class="pl-pds">"</span>Database<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>1.0<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Demo<span class="pl-pds">"</span></span>, <span class="pl-k">-</span><span class="pl-c1">1</span>);
+
+  <span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+    <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">'</span>DROP TABLE IF EXISTS test_table<span class="pl-pds">'</span></span>);
+    <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">'</span>CREATE TABLE IF NOT EXISTS test_table (id integer primary key, data text, data_num integer)<span class="pl-pds">'</span></span>);
+
+    <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>INSERT INTO test_table (data, data_num) VALUES (?,?)<span class="pl-pds">"</span></span>, [<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, <span class="pl-c1">100</span>], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>insertId: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-smi">insertId</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- probably 1<span class="pl-pds">"</span></span>);
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>rowsAffected: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-smi">rowsAffected</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- should be 1<span class="pl-pds">"</span></span>);
+
+      <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>select count(id) as cnt from test_table;<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+        <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>res.rows.length: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">length</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- should be 1<span class="pl-pds">"</span></span>);
+        <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>res.rows.item(0).cnt: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">cnt</span> <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">"</span> -- should be 1<span class="pl-pds">"</span></span>);
+      });
+
+    }, <span class="pl-k">function</span>(<span class="pl-smi">e</span>) {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">"</span>ERROR: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> <span class="pl-smi">e</span>.<span class="pl-smi">message</span>);
+    });
+  });
+}</pre></div>
+
+<p>This case will also works with Safari (WebKit), assuming you replace <code>window.sqlitePlugin.openDatabase</code> with <code>window.openDatabase</code>.</p>
+
+<h2>
+<a id="close-a-database-object" class="anchor" href="#close-a-database-object" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Close a database object</h2>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">db</span>.<span class="pl-c1">close</span>(successcb, errorcb);</pre></div>
+
+<p>It is OK to close the database within a transaction callback but <em>NOT</em> within a statement callback. The following example is OK:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+  <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>SELECT LENGTH('tenletters') AS stringlength<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>got stringlength: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">stringlength</span>);
+  });
+}, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-c">// OK to close here:</span>
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>transaction error: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">error</span>.<span class="pl-smi">message</span>);
+  <span class="pl-smi">db</span>.<span class="pl-c1">close</span>();
+}, <span class="pl-k">function</span>() {
+  <span class="pl-c">// OK to close here:</span>
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>transaction ok<span class="pl-pds">'</span></span>);
+  <span class="pl-smi">db</span>.<span class="pl-c1">close</span>(<span class="pl-k">function</span>() {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>database is closed ok<span class="pl-pds">'</span></span>);
+  });
+});</pre></div>
+
+<p>The following example is NOT OK:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">// BROKEN:</span>
+<span class="pl-smi">db</span>.<span class="pl-en">transaction</span>(<span class="pl-k">function</span>(<span class="pl-smi">tx</span>) {
+  <span class="pl-smi">tx</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>SELECT LENGTH('tenletters') AS stringlength<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span>(<span class="pl-smi">tx</span>, <span class="pl-smi">res</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>got stringlength: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">stringlength</span>);
+    <span class="pl-c">// BROKEN - this will trigger the error callback:</span>
+    <span class="pl-smi">db</span>.<span class="pl-c1">close</span>(<span class="pl-k">function</span>() {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>database is closed ok<span class="pl-pds">'</span></span>);
+    }, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>ERROR closing database<span class="pl-pds">'</span></span>);
+    });
+  });
+});</pre></div>
+
+<p><strong>BUG 1:</strong> It is currently NOT possible to close a database in a <code>db.executeSql</code> callback. For example:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c">// BROKEN DUE TO BUG:</span>
+<span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>SELECT LENGTH('tenletters') AS stringlength<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span> (<span class="pl-smi">res</span>) {
+  <span class="pl-k">var</span> stringlength <span class="pl-k">=</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">stringlength</span>;
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>got stringlength: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">stringlength</span>);
+
+  <span class="pl-c">// BROKEN - this will trigger the error callback DUE TO BUG:</span>
+  <span class="pl-smi">db</span>.<span class="pl-c1">close</span>(<span class="pl-k">function</span>() {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>database is closed ok<span class="pl-pds">'</span></span>);
+  }, <span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>ERROR closing database<span class="pl-pds">'</span></span>);
+  });
+});</pre></div>
+
+<p><strong>BUG 2:</strong> If multiple database access objects are opened for the same database and one database access object is closed, the database is no longer available for the other database access objects. Possible workarounds:</p>
+
+<ul>
+<li>It is still possible to open one or more new database access objects on a database that has been closed.</li>
+<li>It <em>should</em> be OK not to explicitly close a database handle since database transactions are <a href="https://en.wikipedia.org/wiki/ACID">ACID</a> compliant and the app's memory resources are cleaned up by the system upon termination.</li>
+</ul>
+
+<h2>
+<a id="delete-a-database" class="anchor" href="#delete-a-database" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Delete a database</h2>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">deleteDatabase</span>({name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>my.db<span class="pl-pds">"</span></span>, location<span class="pl-k">:</span> <span class="pl-c1">1</span>}, successcb, errorcb);</pre></div>
+
+<p><code>location</code> as described above for <code>openDatabase</code> (iOS <em>only</em>)</p>
+
+<h1>
+<a id="schema-versions" class="anchor" href="#schema-versions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Schema versions</h1>
+
+<p>The transactional nature of the API makes it relatively straightforward to manage a database schema that may be upgraded over time (adding new columns or new tables, for example). Here is the recommended procedure to follow upon app startup:</p>
+
+<ul>
+<li>Check your database schema version number (you can use <code>db.executeSql</code> since it should be a very simple query)</li>
+<li>If your database needs to be upgraded, do the following <em>within a single transaction</em> to be failure-safe:
+
+<ul>
+<li>Create your database schema version table (single row single column) if it does not exist (you can check the <code>sqlite_master</code> table as described at: <a href="http://stackoverflow.com/questions/1601151/how-do-i-check-in-sqlite-whether-a-table-exists">http://stackoverflow.com/questions/1601151/how-do-i-check-in-sqlite-whether-a-table-exists</a>)</li>
+<li>Add any missing columns and tables, and apply any other changes necessary</li>
+</ul>
+</li>
+</ul>
+
+<p><strong>IMPORTANT:</strong> Since we cannot be certain when the users will actually update their apps, old schema versions will have to be supported for a very long time.</p>
+
+<h2>
+<a id="use-with-ionicngcordovaangular" class="anchor" href="#use-with-ionicngcordovaangular" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Use with Ionic/ngCordova/Angular</h2>
+
+<p>It is recommended to follow the tutorial at: <a href="https://blog.nraboy.com/2014/11/use-sqlite-instead-local-storage-ionic-framework/">https://blog.nraboy.com/2014/11/use-sqlite-instead-local-storage-ionic-framework/</a></p>
+
+<p>Documentation at: <a href="http://ngcordova.com/docs/plugins/sqlite/">http://ngcordova.com/docs/plugins/sqlite/</a></p>
+
+<h1>
+<a id="installing" class="anchor" href="#installing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installing</h1>
+
+<h2>
+<a id="easy-install-with-cordova-cli-tool" class="anchor" href="#easy-install-with-cordova-cli-tool" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Easy install with Cordova CLI tool</h2>
+
+<pre><code>npm install -g cordova # if you don't have cordova
+cordova create MyProjectFolder com.my.project MyProject &amp;&amp; cd MyProjectFolder # if you are just starting
+cordova plugin add https://github.com/litehelpers/Cordova-sqlite-storage
+</code></pre>
+
+<p>You can find more details at <a href="http://iphonedevlog.wordpress.com/2014/04/07/installing-chris-brodys-sqlite-database-with-cordova-cli-android/">this writeup</a>.</p>
+
+<p><strong>IMPORTANT:</strong> sometimes you have to update the version for a platform before you can build, like: <code>cordova prepare ios</code></p>
+
+<p><strong>NOTE:</strong> If you cannot build for a platform after <code>cordova prepare</code>, you may have to remove the platform and add it again, such as:</p>
+
+<pre><code>cordova platform rm ios
+cordova platform add ios
+</code></pre>
+
+<h2>
+<a id="easy-install-with-plugman-tool" class="anchor" href="#easy-install-with-plugman-tool" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Easy install with plugman tool</h2>
+
+<div class="highlight highlight-source-shell"><pre>plugman install --platform MYPLATFORM --project path.to.my.project.folder --plugin https://github.com/litehelpers/Cordova-sqlite-storage</pre></div>
+
+<p>where MYPLATFORM is <code>android</code>, <code>ios</code><del>, or <code>windows</code></del>.</p>
+
+<p>A posting how to get started developing on Windows host without the Cordova CLI tool (for Android target only) is available <a href="http://brodybits.blogspot.com/2015/03/trying-cordova-for-android-on-windows-without-cordova-cli.html">here</a>.</p>
+
+<h2>
+<a id="installation-sources" class="anchor" href="#installation-sources" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation sources</h2>
+
+<ul>
+<li>
+<a href="https://github.com/litehelpers/Cordova-sqlite-storage">https://github.com/litehelpers/Cordova-sqlite-storage</a> - latest version</li>
+<li>
+<code>cordova-sqlite-storage</code> - stable npm package version</li>
+</ul>
+
+<h2>
+<a id="source-tree" class="anchor" href="#source-tree" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Source tree</h2>
+
+<ul>
+<li>
+<code>SQLitePlugin.coffee.md</code>: platform-independent (Literate coffee-script, can be read by recent coffee-script compiler)</li>
+<li>
+<code>www</code>: <code>SQLitePlugin.js</code> platform-independent Javascript as generated from <code>SQLitePlugin.coffee.md</code> (and checked in!)</li>
+<li>
+<code>src</code>: platform-specific source code:
+
+<ul>
+<li>
+<code>android</code> - Java plugin code for Android</li>
+<li>
+<code>ios</code> - Objective-C plugin code for iOS;</li>
+</ul>
+</li>
+<li>
+<code>spec</code>: test suite using Jasmine (2.2.0)</li>
+<li>
+<code>tests</code>: very simple Jasmine test suite that is run on Circle CI (Android version) and Travis CI (iOS version) (used as a placeholder)</li>
+<li>
+<code>Lawnchair-adapter</code>: Lawnchair adaptor, based on the version from the Lawnchair repository, with the basic Lawnchair test suite in <code>test-www</code> subdirectory</li>
+</ul>
+
+<h2>
+<a id="installation-test" class="anchor" href="#installation-test" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation test</h2>
+
+<h3>
+<a id="easy-installation-test" class="anchor" href="#easy-installation-test" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Easy installation test</h3>
+
+<p>Use <code>window.sqlitePlugin.echoTest</code> as described above (please wait for the <code>deviceready</code> event).</p>
+
+<h3>
+<a id="quick-installation-test" class="anchor" href="#quick-installation-test" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Quick installation test</h3>
+
+<p>Assuming your app has a recent template as used by the Cordova create script, add the following code to the <code>onDeviceReady</code> function, after <code>app.receivedEvent('deviceready');</code>:</p>
+
+<div class="highlight highlight-source-js"><pre>  <span class="pl-c1">window</span>.<span class="pl-smi">sqlitePlugin</span>.<span class="pl-en">openDatabase</span>({ name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>hello-world.db<span class="pl-pds">'</span></span> }, <span class="pl-k">function</span> (<span class="pl-smi">db</span>) {
+    <span class="pl-smi">db</span>.<span class="pl-en">executeSql</span>(<span class="pl-s"><span class="pl-pds">"</span>select length('tenletters') as stringlength<span class="pl-pds">"</span></span>, [], <span class="pl-k">function</span> (<span class="pl-smi">res</span>) {
+      <span class="pl-k">var</span> stringlength <span class="pl-k">=</span> <span class="pl-smi">res</span>.<span class="pl-c1">rows</span>.<span class="pl-c1">item</span>(<span class="pl-c1">0</span>).<span class="pl-smi">stringlength</span>;
+      <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>got stringlength: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> stringlength);
+      <span class="pl-c1">document</span>.<span class="pl-c1">getElementById</span>(<span class="pl-s"><span class="pl-pds">'</span>deviceready<span class="pl-pds">'</span></span>).<span class="pl-c1">querySelector</span>(<span class="pl-s"><span class="pl-pds">'</span>.received<span class="pl-pds">'</span></span>).<span class="pl-smi">innerHTML</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>stringlength: <span class="pl-pds">'</span></span> <span class="pl-k">+</span> stringlength;
+   });
+  });</pre></div>
+
+<h1>
+<a id="support" class="anchor" href="#support" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support</h1>
+
+<h2>
+<a id="policy" class="anchor" href="#policy" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Policy</h2>
+
+<p>Free support is provided on a best-effort basis and is only available in public forums. Please follow the steps below to be sure you have done your best before requesting help.</p>
+
+<p>Commercial support is available by contacting: <a href="mailto:info@litehelpers.net">info@litehelpers.net</a></p>
+
+<h2>
+<a id="before-asking-for-help" class="anchor" href="#before-asking-for-help" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Before asking for help</h2>
+
+<p>First steps:</p>
+
+<ul>
+<li>Verify that you have followed the steps in <a href="https://github.com/brodybits/Cordova-quick-start-checklist">brodybits / Cordova-quick-start-checklist</a>
+</li>
+<li>Try the new echo test as described above</li>
+<li>Check the troubleshooting steps and pitfalls in <a href="https://github.com/brodybits/Cordova-troubleshooting-guide">brodybits / Cordova-troubleshooting-guide</a>
+</li>
+</ul>
+
+<p>and check the following:</p>
+
+<ul>
+<li>You are using the latest version of the Plugin Javascript &amp; platform-specific Java or Objective-C source from this repository.</li>
+<li>You have installed the Javascript &amp; platform-specific Java or Objective-C correctly.</li>
+<li>You have included the correct version of the cordova Javascript and SQLitePlugin.js and got the path right.</li>
+<li>You have registered the plugin properly in <code>config.xml</code>.</li>
+</ul>
+
+<p>If you still cannot get something to work:</p>
+
+<ul>
+<li>create a fresh, clean Cordova project;</li>
+<li>add this plugin according to the instructions above;</li>
+<li>double-check that you follwed the steps in <a href="https://github.com/brodybits/Cordova-quick-start-checklist">brodybits / Cordova-quick-start-checklist</a>;</li>
+<li>try a simple test program;</li>
+<li>double-check the troubleshooting steps and pitfalls in <a href="https://github.com/brodybits/Cordova-troubleshooting-guide">brodybits / Cordova-troubleshooting-guide</a>
+</li>
+</ul>
+
+<p>If you continue to see the issue in the fresh, clean Cordova project:</p>
+
+<ul>
+<li>Make the simplest test program you can to demonstrate the issue, including the following characteristics:
+
+<ul>
+<li>it completely self-contained, i.e. it is using no extra libraries beyond cordova &amp; SQLitePlugin.js;</li>
+<li>if the issue is with <em>adding</em> data to a table, that the test program includes the statements you used to open the database and create the table;</li>
+<li>if the issue is with <em>retrieving</em> data from a table, that the test program includes the statements you used to open the database, create the table, and enter the data you are trying to retrieve.</li>
+</ul>
+</li>
+</ul>
+
+<h2>
+<a id="what-will-be-supported-for-free" class="anchor" href="#what-will-be-supported-for-free" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>What will be supported for free</h2>
+
+<p>Please make a small, self-contained test program that can demonstrate your problem and post it. Please do not use any other plugins or frameworks than are absolutely necessary to demonstrate your problem.</p>
+
+<p>In case of a problem with a pre-populated database, please post your entire project.</p>
+
+<h2>
+<a id="support-for-issues-with-angularngcordovaionic" class="anchor" href="#support-for-issues-with-angularngcordovaionic" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support for issues with Angular/"ngCordova"/Ionic</h2>
+
+<p>Free support for issues with Angular/"ngCordova"/Ionic will only be provided if you can demonstrate that you can do the same thing without such a framework.</p>
+
+<ul>
+<li>Make a fresh, clean ngCordova or Ionic project with a test program that demonstrates the issue and post it. Please do not use any other plugins or frameworks unless absolutely necessary to demonstrate your issue.</li>
+<li>Make another project without any form of Angular including ngCordova or Ionic, with the same test program to show that it will work outside Angular/"ngCordova"/Ionic.</li>
+</ul>
+
+<h2>
+<a id="what-information-is-needed-for-help" class="anchor" href="#what-information-is-needed-for-help" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>What information is needed for help</h2>
+
+<p>Please include the following:</p>
+
+<ul>
+<li>Which platform(s) Android/iOS/WP8/Windows 8.1/Windows Phone 8.1</li>
+<li>Clear description of the issue</li>
+<li>A small, complete, self-contained program that demonstrates the problem, preferably as a Github project. ZIP/TGZ/BZ2 archive available from a public link is OK. No RAR or other such formats please!</li>
+<li>A Cordova project is highly preferred. Intel, MS IDE, or similar project formats should be avoided.</li>
+</ul>
+
+<h2>
+<a id="please-do-not-use-any-of-these-formats" class="anchor" href="#please-do-not-use-any-of-these-formats" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Please do NOT use any of these formats</h2>
+
+<ul>
+<li>screen casts or videos</li>
+<li>RAR or similar archive formats</li>
+<li>Intel, MS IDE, or similar project formats unless absolutely necessary</li>
+</ul>
+
+<h2>
+<a id="where-to-ask-for-help" class="anchor" href="#where-to-ask-for-help" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Where to ask for help</h2>
+
+<p>Once you have followed the directions above, you may request free support in the following location(s):</p>
+
+<ul>
+<li><a href="https://github.com/litehelpers/Cordova-sqlite-storage/issues">litehelpers / Cordova-sqlite-storage / issues</a></li>
+<li>TBD ???: <del><a href="https://github.com/litehelpers/Cordova-sqlite-help">litehelpers / Cordova-sqlite-help</a></del>
+</li>
+</ul>
+
+<p>Please include the information described above otherwise.</p>
+
+<h2>
+<a id="professional-support" class="anchor" href="#professional-support" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Professional support</h2>
+
+<p>Professional support is available, please contact: <a href="mailto:info@litehelpers.net">info@litehelpers.net</a></p>
+
+<h1>
+<a id="unit-tests" class="anchor" href="#unit-tests" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Unit tests</h1>
+
+<p>Unit testing is done in <code>spec</code>.</p>
+
+<h2>
+<a id="running-tests-from-shell" class="anchor" href="#running-tests-from-shell" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>running tests from shell</h2>
+
+<p>To run the tests from *nix shell, simply do either:</p>
+
+<pre><code>./bin/test.sh ios
+</code></pre>
+
+<p>or for Android:</p>
+
+<pre><code>./bin/test.sh android
+</code></pre>
+
+<p>To run from a windows powershell (here is a sample for android target):</p>
+
+<pre><code>.\bin\test.ps1 android
+</code></pre>
+
+<h1>
+<a id="adapters" class="anchor" href="#adapters" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Adapters</h1>
+
+<h2>
+<a id="lawnchair-adapter" class="anchor" href="#lawnchair-adapter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Lawnchair Adapter</h2>
+
+<h3>
+<a id="common-adapter" class="anchor" href="#common-adapter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Common adapter</h3>
+
+<p>Please look at the <code>Lawnchair-adapter</code> tree that contains a common adapter, which should also work with the Android version, along with a test-www directory.</p>
+
+<h3>
+<a id="included-files" class="anchor" href="#included-files" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Included files</h3>
+
+<p>Include the following Javascript files in your HTML:</p>
+
+<ul>
+<li>
+<code>cordova.js</code> (don't forget!)</li>
+<li>
+<code>lawnchair.js</code> (you provide)</li>
+<li>
+<code>SQLitePlugin.js</code> (in case of Cordova pre-3.0)</li>
+<li>
+<code>Lawnchair-sqlitePlugin.js</code> (must come after <code>SQLitePlugin.js</code> in case of Cordova pre-3.0)</li>
+</ul>
+
+<h3>
+<a id="sample" class="anchor" href="#sample" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Sample</h3>
+
+<p>The <code>name</code> option determines the sqlite database filename, <em>with no extension automatically added</em>. Optionally, you can change the db filename using the <code>db</code> option.</p>
+
+<p>In this example, you would be using/creating a database with filename <code>kvstore</code>:</p>
+
+<div class="highlight highlight-source-js"><pre>kvstore <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Lawnchair</span>({name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>kvstore<span class="pl-pds">"</span></span>}, <span class="pl-k">function</span>() {
+  <span class="pl-c">// do stuff</span>
+);</pre></div>
+
+<p>Using the <code>db</code> option you can specify the filename with the desired extension and be able to create multiple stores in the same database file. (There will be one table per store.)</p>
+
+<div class="highlight highlight-source-js"><pre>recipes <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Lawnchair</span>({db<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>cookbook<span class="pl-pds">"</span></span>, name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>recipes<span class="pl-pds">"</span></span>, <span class="pl-k">...</span>}, <span class="pl-en">myCallback</span>());
+ingredients <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Lawnchair</span>({db<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>cookbook<span class="pl-pds">"</span></span>, name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>ingredients<span class="pl-pds">"</span></span>, <span class="pl-k">...</span>}, <span class="pl-en">myCallback</span>());</pre></div>
+
+<p><strong>KNOWN ISSUE:</strong> the new db options are <em>not</em> supported by the Lawnchair adapter. The workaround is to first open the database file using <code>sqlitePlugin.openDatabase()</code>.</p>
+
+<h2>
+<a id="pouchdb" class="anchor" href="#pouchdb" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PouchDB</h2>
+
+<p>The adapter is now part of <a href="http://pouchdb.com/">PouchDB</a> thanks to <a href="https://github.com/nolanlawson">@nolanlawson</a>, see <a href="http://pouchdb.com/faq.html">PouchDB FAQ</a>.</p>
+
+<h1>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Contributing</h1>
+
+<h2>
+<a id="community" class="anchor" href="#community" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Community</h2>
+
+<ul>
+<li>Testimonials of apps that are using this plugin would be especially helpful.</li>
+<li>Reporting issues can help improve the quality of this plugin.</li>
+</ul>
+
+<h2>
+<a id="code" class="anchor" href="#code" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Code</h2>
+
+<p><strong>WARNING:</strong> Please do NOT propose changes from your default branch. In general, contributions are rebased using <code>git rebase</code> or <code>git cherry-pick</code> and not merged.</p>
+
+<ul>
+<li>Patches with bug fixes are helpful, especially when submitted with test code.</li>
+<li>Other enhancements welcome for consideration, when submitted with test code and are working for all supported platforms. Increase of complexity should be avoided.</li>
+<li>All contributions may be reused by <a href="https://github.com/brodybits">@brodybits (Chris Brody)</a> under another license in the future. Efforts will be taken to give credit for major contributions but it will not be guaranteed.</li>
+<li>Project restructuring, i.e. moving files and/or directories around, should be avoided if possible.</li>
+<li>If you see a need for restructuring, it is better to first discuss it in new issue where alternatives can be discussed before reaching a conclusion. If you want to propose a change to the project structure:
+
+<ul>
+<li>Remember to make (and use) a special branch within your fork from which you can send the proposed restructuring;</li>
+<li>Always use <code>git mv</code> to move files &amp; directories;</li>
+<li>Never mix a move/rename operation with any other changes in the same commit.</li>
+</ul>
+</li>
+</ul>
+
+<h2>
+<a id="contact" class="anchor" href="#contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Contact</h2>
+
+<p><a href="mailto:info@litehelpers.net">info@litehelpers.net</a></p>
+
+<p>LinkedIn: <a href="https://www.linkedin.com/in/chrisbrody">https://www.linkedin.com/in/chrisbrody</a></p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/YOTOV-LIMITED/SQLite">Sqlite</a> is maintained by <a href="https://github.com/YOTOV-LIMITED">YOTOV-LIMITED</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
